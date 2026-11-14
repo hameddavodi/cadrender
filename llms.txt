@@ -1,0 +1,55 @@
+# cadrender
+
+> Fast renderer that turns CAD drawings (DXF, and DWG read directly) into PNG and SVG pictures, one per sheet (paper-space layout tab). Rust library, Python package (`pip install cadrender`) and command line tool. About 10 ms per sheet; roughly 470x faster than ezdxf + matplotlib. No ODA converter or AutoCAD needed. MIT OR Apache-2.0.
+
+Use cadrender when a task needs previews, thumbnails or images of DXF/DWG files, especially many files or many layout tabs. It does not edit or write DXF/DWG; it only reads and draws them. For editing CAD data use ezdxf; for pictures use cadrender.
+
+## Python
+
+```python
+import cadrender
+
+doc = cadrender.open("drawing.dwg")        # .dxf or .dwg; reads the file once
+doc.sheets                                 # ['A01', 'A02', ...] layout tab names in tab order
+png = doc.render("A01", width=2000)        # bytes (PNG); format="svg" gives SVG bytes
+doc.render_to("A01", "out/A01.svg")        # format from the file extension
+summary = doc.render_all(
+    "out/", width=2000, formats=("png", "svg"), threads=4,
+    sheets=["A01", "A03"],                 # optional subset of tabs
+    clean={"layers": ["TITLE_BLOCK"], "block_keywords": ["logo"]},  # leave things out
+)
+summary["done"], summary["failed"]         # lists / dict of errors per sheet
+```
+
+Option keywords for render/render_to/render_all: preset ("preview" default: grey on white, paper lineweights; "none": true colours), width, dpi, color ("mono" | "true"), background, lineweight, frame ("extents" | "paper"), margin, max_height, full_detail, clean, draw_order, text_masks, wipeout_frames. Output file names in render_all: `<file stem>__<sheet>.png`.
+
+## Command line
+
+```sh
+cadrender sheets drawing.dwg
+cadrender render drawing.dwg --sheet A01 --width 2000 -o a01.png
+cadrender render drawing.dxf --all --out-dir out/ [--sheets A01,A02] [--threads N] [--svg]
+```
+
+`render --all` prints a JSON summary with the time of each sheet. Options: --preset preview|none, --color mono|true, --frame extents|paper, --no-clean, --full-detail, --no-wipeout-frames, --font auto|liberation|FILE.ttf.
+
+## Rust
+
+```rust
+use cadrender::{load_fonts, Document, FontChoice, RenderOptions};
+let doc = Document::open("drawing.dxf", load_fonts(&FontChoice::Auto)?)?;
+let opts = RenderOptions::preset("preview").unwrap();
+let prep = doc.prepare(&opts);
+for sheet in doc.sheets() { std::fs::write(format!("{sheet}.png"), doc.render_png(sheet, &opts, &prep)?.png)?; }
+```
+
+## What it supports
+
+DXF (ASCII) and DWG R2004 to R2018; paper-space viewports (clip, per-viewport frozen layers, scale, twist); lines, arcs, polylines, splines, helix; hatches (pattern, solid, gradient, islands); TEXT, MTEXT with formatting, attributes; dimensions, LEADER, MULTILEADER; blocks and nested inserts; WIPEOUT; IMAGE (PNG/JPEG next to the drawing); REGION/3DSOLID outlines; linetypes, lineweights, draw order. Fonts: Arial if installed, else bundled Liberation Sans (no AutoCAD fonts).
+
+## Links
+
+- [README](https://github.com/hameddavodi/cadrender/blob/main/README.md): install, speed comparison, examples
+- [Python API details](https://github.com/hameddavodi/cadrender/blob/main/crates/cadrender-py/README.md)
+- [Architecture](https://github.com/hameddavodi/cadrender/blob/main/docs/architecture.md)
+- [PyPI](https://pypi.org/project/cadrender/) · [crates.io](https://crates.io/crates/cadrender) · [docs.rs](https://docs.rs/cadrender)

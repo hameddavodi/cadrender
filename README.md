@@ -6,20 +6,53 @@
 [![crates.io downloads](https://img.shields.io/crates/d/cadrender.svg)](https://crates.io/crates/cadrender)
 [![CI](https://github.com/hameddavodi/cadrender/actions/workflows/ci.yml/badge.svg)](https://github.com/hameddavodi/cadrender/actions/workflows/ci.yml)
 
-cadrender turns CAD drawings (DXF and DWG files) into pictures (PNG and SVG),
-one picture per sheet. A **sheet** is a paper-space layout tab, the page you
-would print. cadrender is written in Rust, and you can use it from the command
-line, from Python or from Rust.
+**Fast DXF and DWG to PNG and SVG renderer**, written in Rust, with a Python
+package and a command line tool. It reads AutoCAD drawings (DXF, and DWG
+directly, no converter needed) and draws one picture per sheet. A **sheet** is a
+paper-space layout tab, the page you would print.
 
-## Why
+About **470 times faster than ezdxf + matplotlib** on the same drawings, with
+less memory and AutoCAD-like plots.
 
-It is fast. A typical sheet takes about **10 ms**. In one test, 8 real-world
-architectural drawings with 320 sheets in total rendered in about **3 seconds
-on one CPU core**. The same job with a Python pipeline (ezdxf + matplotlib)
-took hours.
+```sh
+pip install cadrender
+cadrender render drawing.dwg --all --out-dir previews/
+```
 
-That makes it useful for previews, thumbnails, search indexes, document
-pipelines and anything else that must look at many drawings quickly.
+## Speed: cadrender vs ezdxf
+
+Same 30 sheets from 8 real-world architectural drawings, same picture size
+(2000 px wide), one CPU core, Apple M4. ezdxf 1.4.5 + matplotlib 3.11,
+Python 3.12. Times include reading the file.
+
+| Drawing | DXF size | Sheets in file | Sheets rendered | ezdxf + matplotlib | cadrender | Faster |
+|---|---:|---:|---:|---:|---:|---:|
+| A | 40 MB | 46 | 5 | 208 s | 0.12 s | 1,680× |
+| B | 25 MB | 18 | 2 | 52 s | 0.08 s | 700× |
+| C | 158 MB | 117 | 3 | 66 s | 0.33 s | 200× |
+| D | 51 MB | 24 | 3 | 27 s | 0.12 s | 220× |
+| E | 222 MB | 60 | 5 | 194 s | 0.46 s | 420× |
+| F | 52 MB | 16 | 5 | 70 s | 0.14 s | 490× |
+| G | 101 MB | 29 | 4 | 83 s | 0.25 s | 340× |
+| H | 12 MB | 10 | 3 | 26 s | 0.04 s | 610× |
+| **All** | | | **30** | **725 s (12 min)** | **1.5 s** | **470×** |
+
+- The ezdxf numbers are already the **fast** ezdxf setup: we gave its drawing
+  frontend a shared bounding-box cache, which makes it about 4× faster than the
+  plain `qsave` call. Plain ezdxf is slower still.
+- **Every sheet of all 8 drawings (320 sheets):** cadrender takes **2.9 s** on one
+  core and **1.3 s** on 10 cores, about **10 ms per sheet**. With ezdxf
+  (about 22 s per sheet) the same job would take about 2 hours.
+- **In a real production pipeline** (DWG converted to DXF, then ezdxf +
+  matplotlib), a 10-sheet drawing took 16 to 27 minutes, and a 39-sheet drawing
+  never finished within a 3-hour limit. cadrender reads the DWG directly and
+  renders a drawing of that size in well under a second.
+- **Memory:** ezdxf used up to 2.7 GB per drawing; cadrender peaks at 0.4 GB
+  (DXF) and 0.8 GB (DWG) on the largest file (222 MB DXF).
+
+Why so fast: the file is read once into a read-only scene, blocks are drawn
+by reference (never copied), everything outside the view is skipped early,
+sheets render in parallel, and thin lines use a custom rasteriser.
 
 ## Features
 
@@ -89,6 +122,26 @@ print(summary["done"], summary["failed"])
 See [crates/cadrender-py/README.md](crates/cadrender-py/README.md) for all
 options.
 
+## Only some sheets, without title blocks
+
+You do not have to render every tab. Pick the sheets by name, and leave out
+layers or blocks you do not want in the picture (for example the title block
+or a logo). Nothing is rewritten: the rules are applied while drawing.
+
+```python
+doc = cadrender.open("drawing.dwg")
+doc.render_all(
+    "out/",
+    sheets=["A01", "A07", "A12"],                 # only these tabs
+    clean={
+        "layers": ["TITLE_BLOCK", "Defpoints"],   # layers to leave out
+        "block_keywords": ["titleblock", "logo"], # INSERTs whose block name contains these
+    },
+)
+```
+
+Command line: `cadrender render drawing.dwg --all --sheets A01,A07 --out-dir out/`.
+
 ## Rust
 
 ```rust
@@ -116,6 +169,15 @@ cadrender does not ship AutoCAD fonts or any other non-free font. All text is
 drawn with one sans font: **Arial** if it is installed on your system, else
 the bundled **Liberation Sans**, which has the same letter widths as Arial.
 Each text style keeps its height, width factor, slant and alignment.
+
+## For AI coding assistants
+
+- [`llms.txt`](llms.txt): a short, plain-text summary of the API for language
+  models and AI agents (also at https://hameddavodi.github.io/cadrender/llms.txt).
+- [`skills/cadrender/SKILL.md`](skills/cadrender/SKILL.md): a ready-made skill
+  for Claude Code and other agents that support skills. Copy the folder to
+  `~/.claude/skills/` and the agent will use cadrender when you ask it to turn
+  DXF or DWG files into pictures.
 
 ## Project layout
 

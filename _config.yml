@@ -1,0 +1,9 @@
+title: cadrender
+description: Fast DXF and DWG to PNG and SVG renderer in Rust, with a Python package. About 470x faster than ezdxf + matplotlib.
+url: https://hameddavodi.github.io
+baseurl: /cadrender
+plugins:
+  - jekyll-sitemap
+  - jekyll-seo-tag
+exclude: [crates, target, stats, Cargo.toml, Cargo.lock, rust-toolchain.toml]
+include: [llms.txt]
