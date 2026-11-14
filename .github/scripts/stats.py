@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Append one row per download source to stats/downloads.csv.
 
-Sources: PyPI (pypistats.org), crates.io, GitHub release assets and GitHub
-traffic (views and clones of the last 14 days). A source that fails or has
+Sources: PyPI (pypistats.org), crates.io and GitHub release assets (CLI
+binaries). A source that fails or has
 no data is skipped with a warning; the other rows are still written.
 
 Environment:
   GITHUB_REPOSITORY  owner/name (set by GitHub Actions)
   GITHUB_TOKEN       for release asset counts (read-only is enough)
-  TRAFFIC_TOKEN      optional; a fine-grained token with "Administration:
-                     read" on this repository, needed for traffic numbers
+
+Note: pypistats.org keeps only the last 180 days, so the PyPI "total" is a
+180-day number; the weekly rows (recent, 7d) add up to the real history.
 Standard library only.
 """
 
@@ -25,7 +26,7 @@ from pathlib import Path
 PACKAGE = "cadrender"
 UA = "cadrender-stats"
 CSV = Path(__file__).resolve().parents[2] / "stats" / "downloads.csv"
-HEADER = ["date", "source", "total", "recent", "recent_window", "uniques"]
+HEADER = ["date", "source", "total", "recent", "recent_window"]
 
 
 def get(url: str, token: str | None = None) -> object:
@@ -41,12 +42,13 @@ def pypi() -> list[list[object]]:
     recent = get(f"https://pypistats.org/api/packages/{PACKAGE}/recent")["data"]
     overall = get(f"https://pypistats.org/api/packages/{PACKAGE}/overall?mirrors=false")["data"]
     total = sum(d["downloads"] for d in overall if d["category"] == "without_mirrors")
-    return [["pypi", total, recent["last_month"], "30d", ""]]
+    return [["pypi", total, recent["last_week"], "7d"],
+            ["pypi", total, recent["last_month"], "30d"]]
 
 
 def crates() -> list[list[object]]:
     c = get(f"https://crates.io/api/v1/crates/{PACKAGE}")["crate"]
-    return [["crates-io", c["downloads"], c.get("recent_downloads") or 0, "90d", ""]]
+    return [["crates-io", c["downloads"], c.get("recent_downloads") or 0, "90d"]]
 
 
 def releases(repo: str) -> list[list[object]]:
@@ -58,19 +60,7 @@ def releases(repo: str) -> list[list[object]]:
         if len(batch) < 100:
             break
         page += 1
-    return [["github-releases", total, "", "", ""]]
-
-
-def traffic(repo: str) -> list[list[object]]:
-    token = os.environ.get("TRAFFIC_TOKEN")
-    if not token:
-        print("warning: TRAFFIC_TOKEN is not set, skipping GitHub traffic", file=sys.stderr)
-        return []
-    rows = []
-    for kind in ("views", "clones"):
-        t = get(f"https://api.github.com/repos/{repo}/traffic/{kind}", token)
-        rows.append([f"github-{kind}", t["count"], "", "14d", t["uniques"]])
-    return rows
+    return [["github-releases", total, "", ""]]
 
 
 def main() -> int:
@@ -78,7 +68,7 @@ def main() -> int:
     today = dt.date.today().isoformat()
     sources = [("pypi", pypi), ("crates.io", crates)]
     if repo:
-        sources += [("releases", lambda: releases(repo)), ("traffic", lambda: traffic(repo))]
+        sources.append(("releases", lambda: releases(repo)))
     rows: list[list[object]] = []
     for name, fn in sources:
         try:

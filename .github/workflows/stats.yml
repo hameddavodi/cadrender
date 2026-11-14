@@ -1,8 +1,7 @@
 name: Download stats
 
-# Once a week, append download numbers to stats/downloads.csv and commit them.
-# GitHub traffic numbers need a secret TRAFFIC_TOKEN (fine-grained token with
-# "Administration: read" on this repository); without it they are skipped.
+# Once a week, append download numbers (PyPI, crates.io, release binaries)
+# to stats/downloads.csv and commit them.
 
 on:
   schedule:
@@ -27,7 +26,6 @@ jobs:
       - name: Collect numbers
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          TRAFFIC_TOKEN: ${{ secrets.TRAFFIC_TOKEN }}
         run: python3 .github/scripts/stats.py
       - name: Commit
         run: |
