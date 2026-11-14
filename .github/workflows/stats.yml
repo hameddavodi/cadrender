@@ -1,0 +1,42 @@
+name: Download stats
+
+# Once a week, append download numbers to stats/downloads.csv and commit them.
+# GitHub traffic numbers need a secret TRAFFIC_TOKEN (fine-grained token with
+# "Administration: read" on this repository); without it they are skipped.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"  # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stats
+  cancel-in-progress: false
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Collect numbers
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TRAFFIC_TOKEN: ${{ secrets.TRAFFIC_TOKEN }}
+        run: python3 .github/scripts/stats.py
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stats/downloads.csv
+          if git diff --cached --quiet; then
+            echo "nothing new"
+          else
+            git commit -m "stats: downloads $(date -u +%Y-%m-%d)"
+            git push
+          fi

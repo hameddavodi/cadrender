@@ -1,0 +1,25 @@
+[package]
+name = "cadrender"
+description = "Fast DXF and DWG to PNG and SVG renderer: open a drawing, render its sheets"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
+
+[dependencies]
+cadrender-core.workspace = true
+cadrender-dxf.workspace = true
+cadrender-image.workspace = true
+cadrender-dwg-scene.workspace = true
+cadrender-raster.workspace = true
+cadrender-svg.workspace = true
+rayon.workspace = true
+
+[dev-dependencies]
+png.workspace = true

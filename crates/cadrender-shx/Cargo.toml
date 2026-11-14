@@ -1,0 +1,20 @@
+[package]
+name = "cadrender-shx"
+description = "AutoCAD SHX/SHP stroke font reader, font resolution and text layout"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+# No dependencies on purpose: this crate is pure Rust and stands alone.
+[dependencies]
+
+[[bench]]
+name = "layout"
+harness = false

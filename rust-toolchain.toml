@@ -1,0 +1,5 @@
+# One Rust version for this Mac and for CI, so a new clippy release cannot
+# break the build by surprise. Raise it on purpose, then fix new lints.
+[toolchain]
+channel = "1.95.0"
+components = ["clippy", "rustfmt"]

@@ -1,0 +1,187 @@
+name: Release
+
+# Runs when a version tag is pushed (for example v0.1.0):
+#   1. Python wheels (abi3, CPython 3.10+) for 5 targets + sdist -> PyPI
+#   2. every crate -> crates.io, in dependency order
+#   3. the `cadrender` CLI for 5 targets -> archives on the GitHub Release
+# PyPI and crates.io use Trusted Publishing (OIDC): no tokens are stored.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-version:
+    name: Tag matches Cargo version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compare tag and workspace version
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          ver=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
+          echo "tag=$tag cargo=$ver"
+          test "$tag" = "$ver"
+
+  wheels:
+    name: Wheel ${{ matrix.name }}
+    needs: check-version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x86_64, os: ubuntu-latest, target: x86_64, manylinux: auto }
+          - { name: linux-aarch64, os: ubuntu-latest, target: aarch64, manylinux: auto }
+          - { name: macos-x86_64, os: macos-latest, target: x86_64-apple-darwin, manylinux: "" }
+          - { name: macos-arm64, os: macos-latest, target: aarch64-apple-darwin, manylinux: "" }
+          - { name: windows-x86_64, os: windows-latest, target: x64, manylinux: "" }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: crates/cadrender-py
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          args: --release --locked --out dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheels-${{ matrix.name }}
+          path: crates/cadrender-py/dist/*.whl
+          if-no-files-found: error
+
+  sdist:
+    name: Source distribution
+    needs: check-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: crates/cadrender-py
+          command: sdist
+          args: --out dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheels-sdist
+          path: crates/cadrender-py/dist/*.tar.gz
+          if-no-files-found: error
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [wheels, sdist]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/cadrender/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-crates:
+    name: Publish to crates.io
+    needs: check-version
+    runs-on: ubuntu-latest
+    environment:
+      name: crates-io
+      url: https://crates.io/crates/cadrender
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+      - name: cargo publish (dependency order)
+        shell: bash
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          # Leaves first. cadrender-py is not here: it goes to PyPI.
+          for c in cadrender-core cadrender-acis cadrender-shx cadrender-dwg \
+                   cadrender-dxf cadrender-image cadrender-raster cadrender-svg \
+                   cadrender-dwg-scene cadrender cadrender-cli; do
+            # A re-run skips crates that are already on crates.io.
+            if curl -sf -A "cadrender-release" "https://crates.io/api/v1/crates/$c/$ver" > /dev/null; then
+              echo "$c $ver is already published, skipping"
+              continue
+            fi
+            cargo publish --locked -p "$c"
+          done
+
+  cli:
+    name: CLI ${{ matrix.target }}
+    needs: check-version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest }
+          - { target: aarch64-unknown-linux-gnu, os: ubuntu-24.04-arm }
+          - { target: x86_64-apple-darwin, os: macos-latest }
+          - { target: aarch64-apple-darwin, os: macos-latest }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.95.0
+        with:
+          targets: ${{ matrix.target }}
+      - name: Build
+        run: cargo build --release --locked -p cadrender-cli --target ${{ matrix.target }}
+      - name: Pack archive
+        shell: bash
+        run: |
+          name="cadrender-${GITHUB_REF_NAME}-${{ matrix.target }}"
+          mkdir "$name"
+          cp README.md LICENSE-MIT LICENSE-APACHE "$name"/
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "target/${{ matrix.target }}/release/cadrender.exe" "$name"/
+            7z a "$name.zip" "$name" > /dev/null
+          else
+            cp "target/${{ matrix.target }}/release/cadrender" "$name"/
+            tar czf "$name.tar.gz" "$name"
+          fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cli-${{ matrix.target }}
+          path: |
+            cadrender-*.tar.gz
+            cadrender-*.zip
+          if-no-files-found: error
+
+  github-release:
+    name: GitHub Release
+    needs: [cli, wheels, sdist]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: cli-*
+          merge-multiple: true
+          path: assets
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: assets/*
+          generate_release_notes: true

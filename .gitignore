@@ -1,0 +1,21 @@
+# your own test drawings stay local (never committed)
+samples/*
+# outputs
+out/
+*.png
+*.svg
+!docs/**/*.png
+!docs/**/*.svg
+# common build/tool folders
+.venv/
+__pycache__/
+target/
+build/
+dist/
+node_modules/
+.DS_Store
+.env
+!crates/*/tests/data/*.svg
+!crates/*/tests/data/*.png
+!crates/*/tests/data/**/*.png
+!crates/*/tests/data/**/*.jpg

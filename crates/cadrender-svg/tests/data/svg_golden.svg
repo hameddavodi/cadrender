@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="425" viewBox="0 0 600 425" stroke-linecap="butt" stroke-linejoin="round" xml:space="preserve">
+<style>
+.s000000-16{fill:none;stroke:#000;stroke-width:1;vector-effect:non-scaling-stroke}
+.s00ff00-16{fill:none;stroke:#0f0;stroke-width:1;vector-effect:non-scaling-stroke}
+.sff0000-16{fill:none;stroke:#f00;stroke-width:1;vector-effect:non-scaling-stroke}
+.f000000{fill:#000}
+.e808080{fill:#808080;fill-rule:evenodd}
+text{font-family:Arial,"Liberation Sans",sans-serif;white-space:pre}
+</style>
+<rect width="100%" height="100%" fill="#fff"/>
+<path class="s000000-16" d="M27.273 404.959h545.454m0 0v-385.675m0 0h-545.454m0 0v385.675"/>
+<path class="s00ff00-16" stroke-dasharray="18.37 9.18" d="M45.638 349.862h183.655"/>
+<text class="f000000" x="45.638" y="56.015" font-size="20.51" textLength="85.48" lengthAdjust="spacingAndGlyphs">A&amp;B &lt;1&gt;</text>
+<text class="f000000" transform="matrix(.5854 -.338 .2588 .9657 45.638 129.477)" font-size="15.93" textLength="105.086" lengthAdjust="spacingAndGlyphs">Narrow turned</text>
+<path class="e808080" d="M45.638 313.131h91.828v-55.096h-91.828v55.096z"/>
+<svg x="247" y="92" width="295" height="185">
+<path class="sff0000-16" d="M55.755 138.487h183.655m-183.655 0v-91.828"/>
+<text class="f000000" x="74.12" y="101.756" font-size="12.82" textLength="36.354" lengthAdjust="spacingAndGlyphs">Model</text>
+</svg>
+</svg>

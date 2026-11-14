@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="323" viewBox="0 0 900 323" stroke-linecap="butt" stroke-linejoin="round" xml:space="preserve">
+<style>
+.f000000{fill:#000}
+.f0000ff{fill:#00f}
+.f00ff00{fill:#0f0}
+.fff0000{fill:#f00}
+text{font-family:Arial,"Liberation Sans",sans-serif;white-space:pre}
+</style>
+<rect width="100%" height="100%" fill="#fff"/>
+<text class="f000000" x="40.909" y="96.489" font-size="19.69"><tspan x="40.909" textLength="45.586" lengthAdjust="spacingAndGlyphs">Plain</tspan><tspan x="86.495" class="fff0000" textLength="35.325" lengthAdjust="spacingAndGlyphs"> red</tspan><tspan x="121.82" font-weight="bold" textLength="44.454" lengthAdjust="spacingAndGlyphs"> bold</tspan></text>
+<text class="f000000" transform="matrix(.9783 0 -.2079 .9783 171.993 96.489)" font-size="20.13" textLength="26.792" lengthAdjust="spacingAndGlyphs">ital</text>
+<text class="f000000" x="40.909" y="131.755" font-size="19.69" textLength="98.008" lengthAdjust="spacingAndGlyphs">under over</text>
+<text class="f000000" x="144.631" y="131.755" font-size="39.39" textLength="54.729" lengthAdjust="spacingAndGlyphs">big</text>
+<text class="f000000" transform="matrix(.5 0 0 .9999 210.749 131.755)" font-size="39.39" textLength="125.357" lengthAdjust="spacingAndGlyphs">narrow</text>
+<text class="f000000" transform="matrix(.9398 0 -.3421 .9398 284.816 131.755)" font-size="41.91" textLength="92.171" lengthAdjust="spacingAndGlyphs">slant</text>
+<path class="f000000" d="M40.909 135h11.403v-.846h-11.403zm11.403 0h11.404v-.846h-11.404zm11.404 0h11.403v-.846h-11.403zm11.403 0h11.404v-.846h-11.404zm11.404 0h6.828v-.846h-6.828zm12.524-20.455h11.404v-.846h-11.404zm11.404 0h10.252v-.846h-10.252zm10.252 0h11.403v-.846h-11.403zm11.403 0h6.828v-.846h-6.828z"/>
+<text class="f00ff00" x="40.909" y="181.129" font-size="19.69" textLength="39.88" lengthAdjust="spacingAndGlyphs">Size</text>
+<text class="f00ff00" x="87.198" y="173.37" font-size="13.79">1</text>
+<text class="f00ff00" x="87.198" y="187.476" font-size="13.79">2</text>
+<text class="f00ff00" x="101.582" y="181.129" font-size="19.69" textLength="34.204" lengthAdjust="spacingAndGlyphs">and</text>
+<text class="f00ff00" x="141.489" y="174.781" font-size="13.79">3</text>
+<text class="f00ff00" x="149.472" y="181.129" font-size="19.69">/</text>
+<text class="f00ff00" x="155.168" y="181.129" font-size="13.79">4</text>
+<text class="f00ff00" x="168.847" y="181.129" font-size="19.69" textLength="34.204" lengthAdjust="spacingAndGlyphs">and</text>
+<text class="f00ff00" x="209.46" y="173.37" font-size="13.79" textLength="28.344" lengthAdjust="spacingAndGlyphs">+0.1</text>
+<text class="f00ff00" x="211.261" y="187.476" font-size="13.79" textLength="24.74" lengthAdjust="spacingAndGlyphs">-0.2</text>
+<text class="f00ff00" x="244.196" y="181.129" font-size="19.69" textLength="34.154" lengthAdjust="spacingAndGlyphs">mm</text>
+<path class="f00ff00" d="M86.493 175.909h9.393v-.846h-9.393z"/>
+<text class="f000000" x="40.909" y="234.734" font-size="15.75"><tspan x="40.909" textLength="88.429" lengthAdjust="spacingAndGlyphs">A &amp; B &lt;tag&gt;</tspan><tspan x="129.338" class="f0000ff" textLength="35.559" lengthAdjust="spacingAndGlyphs"> blue</tspan></text>
+<linearGradient id="g0" gradientUnits="userSpaceOnUse" x1="464.107" y1="0" x2="576.959" y2="0"><stop offset="0" stop-color="#00f"/><stop offset=".5" stop-color="#808080"/><stop offset="1" stop-color="#ff0"/></linearGradient>
+<path fill="url(#g0)" fill-rule="evenodd" d="M464.107 82.382h112.852v-67.711h-112.852v67.711z"/>
+<linearGradient id="g1" gradientUnits="userSpaceOnUse" x1="261.395" y1="-261.395" x2="351.677" y2="-351.677"><stop offset="0" stop-color="#00f"/><stop offset=".5" stop-color="#ff0"/><stop offset="1" stop-color="#00f"/></linearGradient>
+<path fill="url(#g1)" fill-rule="evenodd" d="M605.172 82.382h112.853v-67.711h-112.853v67.711z"/>
+<linearGradient id="g2" gradientUnits="userSpaceOnUse" x1="746.238" y1="0" x2="859.091" y2="0"><stop offset="0" stop-color="#ff0"/><stop offset=".5" stop-color="#00f"/><stop offset="1" stop-color="#ff0"/></linearGradient>
+<path fill="url(#g2)" fill-rule="evenodd" d="M746.238 82.382h112.853v-67.711h-112.853v67.711z"/>
+<radialGradient id="g3" gradientUnits="userSpaceOnUse" cx="492.32" cy="144.451" r="98.706"><stop offset="0" stop-color="#ff0"/><stop offset="1" stop-color="#00f"/></radialGradient>
+<path fill="url(#g3)" fill-rule="evenodd" d="M464.107 195.235h112.852v-67.711h-112.852v67.711z"/>
+<radialGradient id="g4" gradientUnits="userSpaceOnUse" cx="661.599" cy="195.235" r="88.141"><stop offset="0" stop-color="#ff0"/><stop offset="1" stop-color="#00f"/></radialGradient>
+<path fill="url(#g4)" fill-rule="evenodd" d="M605.172 195.235h112.853v-67.711h-112.853v67.711z"/>
+<linearGradient id="g5" gradientUnits="userSpaceOnUse" x1="0" y1="195.235" x2="0" y2="127.524"><stop offset="0" stop-color="#00f"/><stop offset=".125" stop-color="#3c3cc3"/><stop offset=".25" stop-color="#70708f"/><stop offset=".375" stop-color="#9b9b64"/><stop offset=".5" stop-color="#bfbf40"/><stop offset=".625" stop-color="#dbdb24"/><stop offset=".75" stop-color="#efef10"/><stop offset=".875" stop-color="#fbfb04"/><stop offset="1" stop-color="#ff0"/></linearGradient>
+<path fill="url(#g5)" fill-rule="evenodd" d="M746.238 195.235h112.853v-67.711h-112.853v67.711z"/>
+<radialGradient id="g6" gradientUnits="userSpaceOnUse" cx="520.533" cy="274.232" r="65.804"><stop offset="0" stop-color="#00f"/><stop offset="1" stop-color="#ff0"/></radialGradient>
+<path fill="url(#g6)" fill-rule="evenodd" d="M464.107 308.088h112.852v-67.712h-112.852v67.712z"/>
+<radialGradient id="g7" gradientUnits="userSpaceOnUse" cx="661.599" cy="308.088" r="88.141"><stop offset="0" stop-color="#00f"/><stop offset="1" stop-color="#ff0"/></radialGradient>
+<path fill="url(#g7)" fill-rule="evenodd" d="M605.172 308.088h112.853v-67.712h-112.853v67.712z"/>
+<linearGradient id="g8" gradientUnits="userSpaceOnUse" x1="859.091" y1="0" x2="746.238" y2="0"><stop offset="0" stop-color="#ff0"/><stop offset=".125" stop-color="#c3c33c"/><stop offset=".25" stop-color="#8f8f70"/><stop offset=".375" stop-color="#64649b"/><stop offset=".5" stop-color="#4040bf"/><stop offset=".625" stop-color="#2424db"/><stop offset=".75" stop-color="#1010ef"/><stop offset=".875" stop-color="#0404fb"/><stop offset="1" stop-color="#00f"/></linearGradient>
+<path fill="url(#g8)" fill-rule="evenodd" d="M746.238 308.088h112.853v-67.712h-112.853v67.712z"/>
+</svg>

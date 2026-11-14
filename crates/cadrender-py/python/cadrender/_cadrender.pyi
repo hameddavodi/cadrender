@@ -1,0 +1,33 @@
+"""Type stubs for the compiled module. Use the wrappers in ``cadrender``;
+this low-level API may change."""
+
+from pathlib import Path
+from typing import Any, Callable
+
+__version__: str
+SVG_AVAILABLE: bool
+
+def open(path: str, font: str | None = None) -> Document: ...
+def presets() -> list[str]: ...
+def option_names() -> list[str]: ...
+
+class Document:
+    @property
+    def sheets(self) -> list[str]: ...
+    @property
+    def path(self) -> Path: ...
+    @property
+    def info(self) -> dict[str, Any]: ...
+    def render(self, sheet: str, format: str, options: dict[str, Any] | None = None) -> bytes: ...
+    def render_to(self, sheet: str, path: str, format: str, options: dict[str, Any] | None = None) -> dict[str, Any]: ...
+    def render_all(
+        self,
+        out_dir: str,
+        stem: str,
+        formats: list[str],
+        options: dict[str, Any] | None = None,
+        threads: int | None = None,
+        sheets: list[str] | None = None,
+        skip_existing: bool = False,
+        on_sheet: Callable[[str, dict[str, Any]], object] | None = None,
+    ) -> dict[str, Any]: ...

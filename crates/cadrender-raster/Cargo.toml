@@ -1,0 +1,22 @@
+[package]
+name = "cadrender-raster"
+description = "PNG output for cadrender: a tiny-skia based drawing sink and a fast PNG encoder"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
+
+[dependencies]
+cadrender-core.workspace = true
+tiny-skia.workspace = true
+fdeflate = "0.3"
+crc32fast = "1"
+
+[dev-dependencies]
+png.workspace = true

@@ -1,0 +1,16 @@
+[package]
+name = "cadrender-acis"
+description = "Just enough of the ACIS SAT/SAB formats to draw REGION, 3DSOLID and BODY outlines"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
+
+[dependencies]
+cadrender-core.workspace = true

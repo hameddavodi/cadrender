@@ -1,0 +1,19 @@
+[package]
+name = "cadrender-svg"
+description = "SVG output for cadrender: a drawing sink that writes compact SVG"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
+
+[dependencies]
+cadrender-core.workspace = true
+
+[dev-dependencies]
+cadrender-dxf.workspace = true

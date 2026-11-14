@@ -1,0 +1,19 @@
+[package]
+name = "cadrender-dxf"
+description = "Fast, tolerant ASCII DXF reader that builds a cadrender scene"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
+
+[dependencies]
+cadrender-core.workspace = true
+cadrender-acis.workspace = true
+memchr.workspace = true
+memmap2.workspace = true

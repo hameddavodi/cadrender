@@ -1,0 +1,17 @@
+[package]
+name = "cadrender-core"
+description = "Scene model, entities, render options and drawing walk used by cadrender"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
+
+[dependencies]
+rayon.workspace = true
+ttf-parser.workspace = true

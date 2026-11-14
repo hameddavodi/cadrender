@@ -1,0 +1,190 @@
+  0
+SECTION
+  2
+HEADER
+  9
+$ACADVER
+  1
+AC1032
+  9
+$LTSCALE
+ 40
+1.0
+  9
+$PSLTSCALE
+ 70
+1
+  0
+ENDSEC
+  0
+SECTION
+  2
+BLOCKS
+  0
+BLOCK
+  8
+0
+  2
+TAG
+ 70
+0
+ 10
+0
+ 20
+0
+ 30
+0
+  0
+LINE
+100
+AcDbEntity
+  8
+0
+100
+AcDbLine
+ 10
+0
+ 20
+0
+ 30
+0
+ 11
+10
+ 21
+0
+ 31
+0
+  0
+ENDBLK
+  8
+0
+  0
+ENDSEC
+  0
+SECTION
+  2
+ENTITIES
+  0
+INSERT
+  5
+50
+100
+AcDbEntity
+  8
+0
+100
+AcDbBlockReference
+ 66
+1
+  2
+TAG
+ 10
+0
+ 20
+0
+ 30
+0
+  0
+ATTRIB
+  5
+51
+100
+AcDbEntity
+  8
+0
+100
+AcDbText
+ 10
+1
+ 20
+1
+ 30
+0
+ 40
+2.5
+  1
+ABC
+100
+AcDbAttribute
+  2
+TAG1
+ 70
+0
+280
+0
+100
+AcDbXrecord
+280
+0
+ 70
+1
+  0
+ATTRIB
+  5
+52
+100
+AcDbEntity
+  8
+0
+100
+AcDbText
+ 10
+1
+ 20
+5
+ 30
+0
+ 40
+2.5
+  1
+HIDDEN
+100
+AcDbAttribute
+  2
+TAG2
+ 70
+1
+  0
+SEQEND
+  5
+53
+100
+AcDbEntity
+  8
+0
+  0
+MTEXT
+  5
+60
+100
+AcDbEntity
+  8
+0
+100
+AcDbMText
+ 10
+50
+ 20
+50
+ 30
+0
+ 40
+2.0
+ 41
+0
+ 71
+1
+  1
+Mask
+ 90
+3
+ 63
+256
+ 45
+1.2e+308
+441
+0
+  0
+ENDSEC
+  0
+EOF

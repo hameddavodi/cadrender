@@ -1,0 +1,21 @@
+[package]
+name = "cadrender-dwg"
+description = "DWG reader in pure Rust (R2004 to R2018 files) used by cadrender"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+[dependencies]
+memmap2.workspace = true
+rayon.workspace = true
+
+[[bin]]
+name = "dwgdump"
+path = "src/bin/dwgdump.rs"

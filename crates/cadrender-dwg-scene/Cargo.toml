@@ -1,0 +1,21 @@
+[package]
+name = "cadrender-dwg-scene"
+description = "Turns a cadrender-dwg drawing into a cadrender scene"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+[dependencies]
+cadrender-core.workspace = true
+cadrender-dwg.workspace = true
+cadrender-acis.workspace = true
+
+[dev-dependencies]
+cadrender-dxf.workspace = true

@@ -1,0 +1,3 @@
+# The workspace root owns the lock file once this crate joins it.
+Cargo.lock
+target/

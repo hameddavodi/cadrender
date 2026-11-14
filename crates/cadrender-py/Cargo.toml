@@ -1,0 +1,37 @@
+[package]
+name = "cadrender-py"
+description = "Python binding for cadrender (PyO3, abi3, import name `cadrender`)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+publish = false  # published to PyPI with maturin, not to crates.io
+
+[lib]
+# The compiled module lives inside the Python package: `cadrender._cadrender`.
+name = "_cadrender"
+crate-type = ["cdylib"]
+# No Rust unit tests here: the tests are in Python (tests/*.py, pytest).
+test = false
+doctest = false
+
+[dependencies]
+cadrender.workspace = true
+# Only for the option types (Framing, Lod, ...), like the CLI does.
+cadrender-core.workspace = true
+rayon.workspace = true
+# abi3-py310: one wheel works on every CPython from 3.10 up.
+# extension-module: never link libpython, also in a plain `cargo build
+# --workspace` (CI, other agents). Deprecated in PyO3 0.30 in favour of maturin
+# setting PYO3_BUILD_EXTENSION_MODULE, but that only covers maturin builds.
+pyo3 = { version = "0.30", features = ["abi3-py310", "extension-module"] }
+
+[build-dependencies]
+# build.rs: `-undefined dynamic_lookup` on macOS for plain cargo builds.
+pyo3-build-config = "0.30"

@@ -1,0 +1,50 @@
+[build-system]
+requires = ["maturin>=1.9.4,<2"]
+build-backend = "maturin"
+
+[project]
+name = "cadrender"
+description = "Very fast DXF and DWG to PNG and SVG renderer, written in Rust"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
+authors = [{ name = "The cadrender contributors" }]
+keywords = ["dxf", "dwg", "cad", "svg", "png", "render"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Typing :: Typed",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/hameddavodi/cadrender"
+Repository = "https://github.com/hameddavodi/cadrender"
+Issues = "https://github.com/hameddavodi/cadrender/issues"
+Changelog = "https://github.com/hameddavodi/cadrender/releases"
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.maturin]
+# Mixed project: Python code in python/cadrender, the Rust part becomes
+# cadrender/_cadrender.<abi3 suffix>.
+python-source = "python"
+module-name = "cadrender._cadrender"
+bindings = "pyo3"
+# Same speed settings as the CLI release build (workspace profile).
+profile = "release"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

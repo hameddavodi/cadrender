@@ -1,0 +1,18 @@
+[package]
+name = "cadrender-image"
+description = "Loads the picture files of CAD IMAGE entities (PNG, JPEG) for cadrender"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
+
+[dependencies]
+cadrender-core.workspace = true
+png.workspace = true
+jpeg-decoder = { version = "0.3", default-features = false }
