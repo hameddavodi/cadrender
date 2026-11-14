@@ -19,3 +19,5 @@ node_modules/
 !crates/*/tests/data/*.png
 !crates/*/tests/data/**/*.png
 !crates/*/tests/data/**/*.jpg
+*.so
+*.pyd
