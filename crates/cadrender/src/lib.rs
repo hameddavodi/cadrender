@@ -13,12 +13,14 @@
 //! ```
 
 pub use cadrender_core::text::{FontChoice, Fonts};
+pub use cadrender_core::scene::PaperSetup;
 pub use cadrender_core::{ColorPolicy, Prepared, RenderOptions, Scene, Stats};
 use cadrender_raster::{PngFormat, PngStream, RasterSink};
 pub use cadrender_svg::{SvgConfig, TextMode as SvgText};
 
 /// Pixels per strip when a picture is drawn in strips (one strip = about 16 MB grey).
 pub const STRIP_PIXELS: u64 = 16_000_000;
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -48,6 +50,45 @@ pub struct Document {
     /// Time to read the file and build the scene.
     pub parse_ms: f64,
     pub size_bytes: u64,
+}
+
+/// A sheet (layout tab) and its paper settings.
+#[derive(Clone, Debug)]
+pub struct SheetInfo<'a> {
+    pub name: &'a str,
+    /// Tab order (DXF group 71).
+    pub order: i32,
+    pub paper: &'a PaperSetup,
+}
+
+/// An INSERT with attributes (for example a title block).
+#[derive(Clone, Debug)]
+pub struct Attributes<'a> {
+    /// Sheet name, "Model" for model space, or the name of the block the INSERT is in.
+    pub sheet: Cow<'a, str>,
+    /// Name of the inserted block. Anonymous blocks (dynamic blocks ...) are
+    /// named by their handle: `*U#2F1A` (see `Scene::block_name`).
+    pub block: Cow<'a, str>,
+    pub layer: &'a str,
+    pub handle: u64,
+    /// Insertion point (paper units on a sheet).
+    pub pos: [f64; 2],
+    /// (tag, value) in file order, hidden attributes included. Values are plain text.
+    pub values: &'a [(String, String)],
+}
+
+/// A TEXT, MTEXT or MULTILEADER text.
+#[derive(Clone, Debug)]
+pub struct TextItem<'a> {
+    /// Like [`Attributes::sheet`].
+    pub sheet: Cow<'a, str>,
+    pub layer: &'a str,
+    /// "TEXT", "MTEXT" or "MULTILEADER".
+    pub kind: &'static str,
+    pub handle: u64,
+    pub pos: [f64; 2],
+    /// Plain text; MTEXT lines are joined with `\n`.
+    pub text: &'a str,
 }
 
 /// One rendered sheet.
@@ -104,6 +145,34 @@ impl Document {
 
     /// Sheet (tab) names in tab order.
     pub fn sheets(&self) -> Vec<&str> { self.scene.sheet_names() }
+
+    /// Sheets in tab order, with their paper settings.
+    pub fn sheet_info(&self) -> Vec<SheetInfo<'_>> {
+        self.scene.layouts.iter().map(|l| SheetInfo { name: &l.name, order: l.order, paper: &l.paper }).collect()
+    }
+
+    /// INSERTs with attributes: on one sheet (`"Model"` = model space, or a
+    /// block name for nested INSERTs) or everywhere (`None`). Order: model
+    /// space, the sheets in tab order, other blocks by name.
+    pub fn attributes(&self, sheet: Option<&str>) -> Vec<Attributes<'_>> {
+        let sc = &self.scene;
+        sc.meta.inserts.iter().map(|r| Attributes {
+            sheet: sc.owner_name(r.owner), block: sc.block_name(r.block), layer: &sc.layers[r.layer as usize].name,
+            handle: r.handle, pos: r.pos, values: &r.attribs,
+        }).filter(|a| sheet.is_none_or(|s| a.sheet == s)).collect()
+    }
+
+    /// TEXT, MTEXT and MULTILEADER texts, like [`Document::attributes`];
+    /// `layers` keeps only texts on these layers (case does not matter).
+    /// Invisible texts are left out.
+    pub fn texts(&self, sheet: Option<&str>, layers: Option<&[&str]>) -> Vec<TextItem<'_>> {
+        let sc = &self.scene;
+        let want: Option<Vec<String>> = layers.map(|l| l.iter().map(|n| n.trim().to_uppercase()).collect());
+        sc.meta.texts.iter().map(|t| TextItem {
+            sheet: sc.owner_name(t.owner), layer: &sc.layers[t.layer as usize].name, kind: t.kind.name(),
+            handle: t.handle, pos: t.pos, text: &t.text,
+        }).filter(|t| sheet.is_none_or(|s| t.sheet == s) && want.as_ref().is_none_or(|w| w.contains(&t.layer.to_uppercase()))).collect()
+    }
 
     /// Work shared by all sheets for these options. Make it once, pass it to every render.
     pub fn prepare(&self, opts: &RenderOptions) -> Prepared { Prepared::new(&self.scene, opts) }
