@@ -88,6 +88,51 @@ class Document:
         ``entity_counts``, ``skipped_types`` and ``reader_warnings``."""
         return self._doc.info
 
+    def sheet_info(self) -> list[dict[str, Any]]:
+        """Sheets in tab order, one dict each: ``sheet`` (name), ``order``
+        (tab order) and ``paper``: ``units_per_mm``, ``size_mm``
+        ``(width, height)``, ``margins_mm`` ``(left, bottom, right, top)``,
+        ``limits`` ``(x0, y0, x1, y1)`` and ``psltscale``; a value the file
+        does not give is ``None``."""
+        return self._doc.sheet_info()
+
+    def attributes(self, sheet: str | None = None) -> list[dict[str, Any]]:
+        """Block attributes: one dict per INSERT that has attributes (a title
+        block, for example)::
+
+            {"sheet": "A01", "block": "TITLE_BLOCK", "layer": "0", "handle": "2F1A",
+             "position": (x, y), "values": {"PROJECT": "P-001", ...}}
+
+        sheet: only this sheet; ``"Model"`` for model space. ``None`` (the
+            default) = all. An INSERT inside another block reports that
+            block's name as ``sheet``.
+
+        ``values`` maps tag -> value, in file order (for a tag used twice, the
+        last value). Hidden attributes are included. Values are plain text:
+        special characters (``\\U+00E8``, ``%%d``) are decoded, MTEXT
+        formatting is removed, the lines of a multi-line attribute are joined
+        with ``"\\n"``, and spaces at both ends are removed. ``position`` is the
+        insertion point (paper units on a sheet). Order: model space, the
+        sheets in tab order, then other blocks by name.
+
+        Raises :class:`SheetNotFoundError` for an unknown sheet.
+        """
+        return self._doc.attributes(sheet)
+
+    def texts(self, sheet: str | None = None, layers: Iterable[str] | None = None) -> list[dict[str, Any]]:
+        """TEXT, MTEXT and MULTILEADER texts as plain text, one dict each::
+
+            {"sheet": "A01", "layer": "NOTES", "type": "MTEXT", "handle": "2F1B",
+             "text": "First line\\nSecond line", "position": (x, y)}
+
+        sheet: as in :meth:`attributes`.
+        layers: only texts on these layers (case does not matter).
+
+        Invisible texts are left out; texts on layers that are off or frozen
+        are included. Same order as :meth:`attributes`.
+        """
+        return self._doc.texts(sheet, None if layers is None else [layers] if isinstance(layers, str) else list(layers))
+
     def __repr__(self) -> str:
         return repr(self._doc)
 

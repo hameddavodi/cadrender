@@ -5,15 +5,18 @@
 //! viewports can render from it at the same time on many threads.
 
 pub mod builder;
+pub mod meta;
 pub mod tables;
 
 pub use builder::SceneBuilder;
+pub use meta::{InsertRec, Meta, TextKind, TextRec};
 pub use tables::*;
 
 use crate::entity::viewport::ViewportEnt;
 use crate::entity::{Entity, Kind};
 use crate::geom::BBox;
 use crate::text::Fonts;
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 /// A block definition. Model space and each paper-space layout are blocks too.
@@ -35,6 +38,20 @@ pub struct Block {
     /// built, so the walk reads them in memory order). If that changed the
     /// order, this lists the entities in file order (indices into `ents`).
     pub file_order: Option<Box<[u32]>>,
+}
+
+impl Block {
+    /// The name metadata uses. Anonymous blocks (`*U`, `*D`, `*T` ...) are
+    /// numbered differently by each writer (and by the DWG reader), so they
+    /// are named by their BLOCK_RECORD handle: `*U#2F1A`. The same block then
+    /// has the same name in a DWG and in its DXF.
+    pub fn meta_name(&self) -> Cow<'_, str> {
+        let n = &self.name;
+        let lower = n.to_ascii_lowercase();
+        if !n.starts_with('*') || self.handle == 0 || lower.starts_with("*model_space") || lower.starts_with("*paper_space") { return Cow::Borrowed(n); }
+        let prefix: String = n.chars().take(1).chain(n.chars().skip(1).take_while(|c| c.is_ascii_alphabetic())).collect();
+        Cow::Owned(format!("{prefix}#{:X}", self.handle))
+    }
 }
 
 /// One paper-space tab.
@@ -98,6 +115,8 @@ pub struct Scene {
     /// Blocks in bottom-up order (a block comes after all blocks it inserts).
     pub prepare_order: Vec<BlockId>,
     pub stats: SceneStats,
+    /// Block attributes and text content (not drawn; see `meta.rs`).
+    pub meta: Meta,
 }
 
 impl Scene {
@@ -109,6 +128,17 @@ impl Scene {
         let ents = &self.blocks[layout.block as usize].ents;
         layout.viewports.iter().filter_map(move |&i| match ents.get(i as usize).map(|e| &e.kind) { Some(Kind::Viewport(v)) => Some(&**v), _ => None })
     }
+    /// Name of the place a block's entities are on: the sheet name for a
+    /// sheet's block, "Model" for model space, else [`Scene::block_name`].
+    pub fn owner_name(&self, block: BlockId) -> Cow<'_, str> {
+        if block == self.model { return Cow::Borrowed("Model"); }
+        match self.layouts.iter().find(|l| l.block == block) {
+            Some(l) => Cow::Borrowed(&l.name),
+            None => self.block_name(block),
+        }
+    }
+    /// A block's name for metadata (see [`Block::meta_name`]).
+    pub fn block_name(&self, block: BlockId) -> Cow<'_, str> { self.blocks.get(block as usize).map_or(Cow::Borrowed(""), |b| b.meta_name()) }
     /// Number of scene entities (all blocks, attributes included).
     pub fn entity_count(&self) -> u64 {
         self.blocks.iter().map(|b| b.ents.iter().map(|e| 1 + if let Kind::Insert(i) = &e.kind { i.attribs.len() as u64 } else { 0 }).sum::<u64>()).sum()

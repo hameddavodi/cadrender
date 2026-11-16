@@ -8,12 +8,13 @@
 
 use super::text::{mtext_ent, MTextSpec, DEFAULT_FILL_SCALE};
 use super::Common;
-use crate::reader::Reader;
+use crate::reader::{MetaRec, Reader};
 use crate::tags::{f, hex, i, raw, trim, Tag};
 use cadrender_core::color::EntColor;
 use cadrender_core::entity::mleader as ml;
 pub(crate) use cadrender_core::entity::mleader::closed_arrow;
 use cadrender_core::entity::{Entity, Kind, Props};
+use cadrender_core::scene::meta::{self, TextKind, TextRec};
 use cadrender_core::scene::tables::Handle;
 use cadrender_core::text::mtext::caret_decode;
 
@@ -178,7 +179,11 @@ pub fn mleader(r: &mut Reader, body: &[Tag], com: &Common) -> Option<Kind> {
         }
         if let (Some(c), true) = (l.conn, m.landing && m.dogleg && l.has_dogleg) { lines.dogleg(c, l.dogleg_dir, l.dogleg_len, &mut ents); }
     }
-    if m.content == 2 && m.has_text { text_part(r, &m, base, &lines, &mut ents); }
+    if m.content == 2 && m.has_text {
+        let rec = TextRec { owner: 0, kind: TextKind::MLeader, layer: com.props.layer, handle: com.props.handle, pos: [m.text_pos[0], m.text_pos[1]], text: meta::plain_mtext(&m.text) };
+        r.meta = Some((*com, MetaRec::Text(rec)));
+        text_part(r, &m, base, &lines, &mut ents);
+    }
     if m.content == 1 && m.has_block { block_part(r, &m, base, &mut ents); }
     ml::finish(&mut r.b, com.props.handle, ents)
 }

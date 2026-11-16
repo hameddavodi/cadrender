@@ -24,6 +24,7 @@ mod entities;
 mod image;
 mod hatch;
 mod kinds;
+mod meta;
 mod mleader;
 mod objects;
 mod shapes;

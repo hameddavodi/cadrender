@@ -2,11 +2,12 @@
 //! DIMENSION and ACAD_TABLE are drawn through their ready-made anonymous blocks.
 
 use super::Common;
-use crate::reader::Reader;
+use crate::reader::{MetaRec, Reader};
 use crate::tags::{find, gf, gi, s, Tag};
 use cadrender_core::entity::insert::InsertEnt;
 use cadrender_core::entity::{Entity, Kind};
 use cadrender_core::geom::Aff;
+use cadrender_core::scene::meta::InsertRec;
 
 pub fn insert(r: &mut Reader, kind: &[u8], body: &[Tag], com: &Common, attribs: Vec<Entity>) -> Option<Kind> {
     let bname = s(find(body, 2)?);
@@ -29,4 +30,14 @@ pub fn insert(r: &mut Reader, kind: &[u8], body: &[Tag], com: &Common, attribs: 
     }
     ins.attribs = attribs;
     Some(ins.into())
+}
+
+/// Keep an INSERT's attribute values for `Scene::meta`.
+pub fn record(r: &mut Reader, body: &[Tag], com: &Common, attribs: Vec<(String, String)>) {
+    let Some(name) = find(body, 2).map(s).filter(|n| !n.is_empty()) else { return };
+    let block = r.b.block(&name);
+    let x = gf(body, 10).unwrap_or(0.0);
+    let pos = [if com.ez < 0.0 { -x } else { x }, gf(body, 20).unwrap_or(0.0)];
+    let rec = InsertRec { owner: 0, block, layer: com.props.layer, handle: com.props.handle, pos, attribs };
+    r.meta = Some((*com, MetaRec::Insert(rec)));
 }

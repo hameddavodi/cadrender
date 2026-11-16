@@ -71,6 +71,7 @@ it at the same time from many threads.
 | `layouts` | paper tabs **in tab order**: block, viewports to draw, paper setup (limits, units, PSLTSCALE) |
 | `fonts` | font faces and their glyph outlines (stored once) |
 | `stats` | entity counts, skipped types, reader warnings |
+| `meta` | metadata, not drawn (`meta.rs`): INSERTs with their attributes (tag, plain value), TEXT / MTEXT / MULTILEADER texts as plain text; owner block, layer, handle, position |
 
 Ids are plain numbers (`LayerId`, `BlockId`, `LinetypeId` = `u32`, index into
 the vectors). Special linetype ids: `LT_BYLAYER`, `LT_BYBLOCK`, `LT_SOLID`.
@@ -95,11 +96,26 @@ The only way to fill a Scene. A reader calls:
 - `push(block, entity)`
 - `add_layout(name, order, block, handle, paper_setup)`, `add_sort_table`
 - `count`, `skip`, `warn` (statistics)
+- `record_insert`, `record_text` (metadata, see below)
 - `build()`: resolves frozen-layer handles, computes all bounding boxes
   bottom-up (with an explicit stack, so deep or cyclic block trees are safe),
   applies draw order, picks the viewports of each tab, sorts tabs.
 
 The DWG reader will use the same builder. Nothing in the builder is DXF specific.
+
+**Metadata** (`scene/meta.rs`). Attribute values and text content are kept
+in `Scene::meta`, a side table, not in the entities: the walk never reads it
+and `Entity` stays small (a laid-out `TextEnt` keeps only glyphs). Readers
+call `record_insert` / `record_text` with plain values (`meta::plain_text`,
+`meta::plain_mtext`: `\U+XXXX` and `%%d` decoded, MTEXT codes removed, the
+0x80..0x9F bytes of old ANSI files read as Windows-1252). Hidden attributes
+are kept, invisible texts are not; layer state and clean rules do not matter.
+`build()` sorts the records by owner (model space, sheets in tab order, other
+blocks), so DXF and DWG give the same order. `Scene::owner_name` turns an
+owner block into a sheet name, `"Model"` or the block's name; anonymous
+blocks are named by their handle (`Block::meta_name`, `*U#2F1A`), because
+writers number them differently. `Document::sheet_info / attributes / texts`
+(and the Python methods) read this table.
 
 ## 3. Entities (`cadrender-core/src/entity/`)
 

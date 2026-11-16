@@ -7,7 +7,7 @@ use crate::render::{self, Format, SheetResult};
 use crate::{batch, errors, options, svg};
 use cadrender::{Document, Prepared, RenderOptions};
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDict};
+use pyo3::types::{PyBytes, PyDict, PyList};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -32,6 +32,13 @@ impl PyDocument {
         let p = Arc::new(self.doc.prepare(opts));
         *slot = Some((key, p.clone()));
         p
+    }
+
+    /// A metadata filter: a sheet, "Model" or a block name.
+    fn check_owner(&self, py: Python<'_>, sheet: &str) -> PyResult<()> {
+        let sc = &self.doc.scene;
+        if sheet == "Model" || (0..sc.blocks.len()).any(|b| sc.block_name(b as u32) == sheet) { return Ok(()); }
+        self.check_sheet(py, sheet)
     }
 
     pub fn check_sheet(&self, py: Python<'_>, sheet: &str) -> PyResult<()> {
@@ -84,6 +91,65 @@ impl PyDocument {
         d.set_item("skipped_types", &sc.stats.skipped)?;
         d.set_item("reader_warnings", &sc.stats.warnings)?;
         Ok(d)
+    }
+
+    /// Sheets in tab order: name, order and paper settings.
+    fn sheet_info<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        let out = PyList::empty(py);
+        for s in self.doc.sheet_info() {
+            let p = s.paper;
+            let paper = PyDict::new(py);
+            paper.set_item("units_per_mm", p.units_per_mm)?;
+            paper.set_item("size_mm", p.size_mm)?;
+            paper.set_item("margins_mm", (p.margins_mm[0], p.margins_mm[1], p.margins_mm[2], p.margins_mm[3]))?;
+            paper.set_item("limits", p.limits.map(|b| (b.x0, b.y0, b.x1, b.y1)))?;
+            paper.set_item("psltscale", p.psltscale)?;
+            let d = PyDict::new(py);
+            d.set_item("sheet", s.name)?;
+            d.set_item("order", s.order)?;
+            d.set_item("paper", paper)?;
+            out.append(d)?;
+        }
+        Ok(out)
+    }
+
+    /// INSERTs with attributes. See `cadrender.Document.attributes`.
+    #[pyo3(signature = (sheet=None))]
+    fn attributes<'py>(&self, py: Python<'py>, sheet: Option<&str>) -> PyResult<Bound<'py, PyList>> {
+        if let Some(s) = sheet { self.check_owner(py, s)?; }
+        let out = PyList::empty(py);
+        for a in self.doc.attributes(sheet) {
+            let values = PyDict::new(py);
+            for (tag, value) in a.values { values.set_item(tag, value)?; }
+            let d = PyDict::new(py);
+            d.set_item("sheet", a.sheet.as_ref())?;
+            d.set_item("block", a.block.as_ref())?;
+            d.set_item("layer", a.layer)?;
+            d.set_item("handle", format!("{:X}", a.handle))?;
+            d.set_item("position", (a.pos[0], a.pos[1]))?;
+            d.set_item("values", values)?;
+            out.append(d)?;
+        }
+        Ok(out)
+    }
+
+    /// TEXT, MTEXT and MULTILEADER texts. See `cadrender.Document.texts`.
+    #[pyo3(signature = (sheet=None, layers=None))]
+    fn texts<'py>(&self, py: Python<'py>, sheet: Option<&str>, layers: Option<Vec<String>>) -> PyResult<Bound<'py, PyList>> {
+        if let Some(s) = sheet { self.check_owner(py, s)?; }
+        let layers: Option<Vec<&str>> = layers.as_ref().map(|l| l.iter().map(String::as_str).collect());
+        let out = PyList::empty(py);
+        for t in self.doc.texts(sheet, layers.as_deref()) {
+            let d = PyDict::new(py);
+            d.set_item("sheet", t.sheet.as_ref())?;
+            d.set_item("layer", t.layer)?;
+            d.set_item("type", t.kind)?;
+            d.set_item("handle", format!("{:X}", t.handle))?;
+            d.set_item("text", t.text)?;
+            d.set_item("position", (t.pos[0], t.pos[1]))?;
+            out.append(d)?;
+        }
+        Ok(out)
     }
 
     /// Render one sheet and return the file bytes (PNG or SVG).

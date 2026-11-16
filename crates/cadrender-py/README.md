@@ -39,6 +39,9 @@ for s in summary["sheets"]:
 | `cadrender.open(path, font=None)` | Read a drawing. `font`: `"auto"` (Arial if installed, else Liberation Sans), `"liberation"`, or a `.ttf` path. |
 | `doc.sheets` | Sheet names in tab order. Model space is not a sheet. |
 | `doc.info` | A dict: `version`, `size_bytes`, `parse_ms`, `font`, counts, `skipped_types`, `reader_warnings`. |
+| `doc.sheet_info()` | Sheets in tab order: `sheet`, `order`, `paper` (`size_mm`, `margins_mm`, `limits`, `units_per_mm`, `psltscale`). |
+| `doc.attributes(sheet=None)` | Block attributes: one dict per INSERT with attributes (`sheet`, `block`, `layer`, `handle`, `position`, `values` = {tag: value}). `"Model"` = model space. |
+| `doc.texts(sheet=None, layers=None)` | TEXT, MTEXT and MULTILEADER texts as plain text (`sheet`, `layer`, `type`, `handle`, `text`, `position`). |
 | `doc.render(sheet, width=2000, format="png", **options)` | One sheet as `bytes`. |
 | `doc.render_to(sheet, path, width=2000, format=None, **options)` | One sheet into a file. The format comes from the file extension. Returns the sheet's result dict. |
 | `doc.render_all(out_dir, width=2000, formats=("png",), threads=None, sheets=None, skip_existing=False, on_sheet=None, **options)` | Many sheets in parallel. Returns a summary dict. |
@@ -163,7 +166,7 @@ The test drawing `tests/data/three_sheets.dxf` is made by
 Cargo.toml, build.rs      Rust crate (PyO3); never links libpython
 pyproject.toml            maturin settings: module cadrender._cadrender
 src/lib.rs                open(), module setup
-src/doc.rs                Document: sheets, info, render, render_to, render_all
+src/doc.rs                Document: sheets, info, metadata, render, render_to, render_all
 src/batch.rs              render_all: rayon threads, callbacks, summary
 src/render.rs             one sheet -> bytes / files, result dicts
 src/options.rs            option dict -> RenderOptions (checks every key)

@@ -88,8 +88,11 @@ pub fn read<'b>(r: &mut Reader, kind: &[u8], body: &[Tag<'b>], t: &mut Tags<'b>)
     let mut verts: Vec<(f64, f64, f64)> = vec![];
     let mut faces: Vec<[i32; 4]> = vec![];
     let mut attribs: Vec<Entity> = vec![];
-    if kind == b"POLYLINE" || kind == b"INSERT" { followers(r, kind, body, t, &mut verts, &mut faces, &mut attribs); }
+    let mut values: Vec<(String, String)> = vec![];
+    if kind == b"POLYLINE" || kind == b"INSERT" { followers(r, kind, body, t, &mut verts, &mut faces, &mut attribs, &mut values); }
+    if !values.is_empty() { insert::record(r, body, &com, values); }
     if com.invisible { return None; }
+    if kind == b"TEXT" || kind == b"MTEXT" { text::record(r, kind, body, &com); }
     let k: Option<Kind> = match kind {
         b"LINE" => curves::line(body),
         b"CIRCLE" => curves::circle(body, &com),
@@ -127,7 +130,9 @@ pub fn read<'b>(r: &mut Reader, kind: &[u8], body: &[Tag<'b>], t: &mut Tags<'b>)
 /// VERTEX records after a POLYLINE, ATTRIB records after an INSERT, and the
 /// closing SEQEND. Tolerant: ATTRIBs without the "attributes follow" flag are
 /// taken too, and a missing SEQEND is fine.
-fn followers<'b>(r: &mut Reader, kind: &[u8], body: &[Tag<'b>], t: &mut Tags<'b>, verts: &mut Vec<(f64, f64, f64)>, faces: &mut Vec<[i32; 4]>, attribs: &mut Vec<Entity>) {
+/// `values` gets the (tag, value) of every ATTRIB, hidden ones too.
+#[allow(clippy::too_many_arguments)]
+fn followers<'b>(r: &mut Reader, kind: &[u8], body: &[Tag<'b>], t: &mut Tags<'b>, verts: &mut Vec<(f64, f64, f64)>, faces: &mut Vec<[i32; 4]>, attribs: &mut Vec<Entity>, values: &mut Vec<(String, String)>) {
     let mut sub: Vec<Tag<'b>> = Vec::with_capacity(32);
     let has66 = body.iter().any(|&(c, v)| c == 66 && i(v) != 0);
     while let Some((0, k)) = t.peek() {
@@ -143,6 +148,7 @@ fn followers<'b>(r: &mut Reader, kind: &[u8], body: &[Tag<'b>], t: &mut Tags<'b>
             t.next();
             t.body(&mut sub);
             r.b.count("ATTRIB");
+            if let Some(v) = text::attrib_value(&sub) { values.push(v); }
             let ac = common(r, &sub);
             if ac.invisible { continue; }
             if let Some(te) = text::text(r, b"ATTRIB", &sub, &ac) { attribs.push(Entity::new(ac.props, te)); }

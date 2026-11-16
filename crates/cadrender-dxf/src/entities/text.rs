@@ -1,8 +1,9 @@
 //! TEXT, MTEXT and ATTRIB -> laid-out `TextEnt`.
 
 use super::Common;
-use crate::reader::Reader;
+use crate::reader::{MetaRec, Reader};
 use crate::tags::{f, gf, gi, raw, s, trim, Tag};
+use cadrender_core::scene::meta::{self, TextKind, TextRec};
 use cadrender_core::color::EntColor;
 use cadrender_core::entity::text::TextEnt;
 use cadrender_core::text::build::{self, MTextIn, TextIn};
@@ -81,4 +82,39 @@ fn mask_of(body: &[Tag]) -> Option<Option<EntColor>> {
         Some(t) => EntColor::true_color(crate::tags::long(t.1) as u32 & 0xff_ffff),
         None => EntColor::aci(body.iter().find(|t| t.0 == 63).map(|t| f(t.1) as i32).unwrap_or(256)),
     }))
+}
+
+/// Cut an ATTRIB / TEXT record at the junk XRECORD part LibreDWG writes.
+fn cut_xrecord<'a, 'b>(body: &'a [Tag<'b>]) -> &'a [Tag<'b>] {
+    match body.iter().position(|t| t.0 == 100 && trim(t.1) == b"AcDbXrecord") { Some(p) => &body[..p], None => body }
+}
+
+/// Groups 3 and 1 joined in file order (long values are split into 3s, the last part is 1).
+fn joined(body: &[Tag]) -> String {
+    let mut s = String::new();
+    for &(c, v) in body { if c == 3 || c == 1 { s.push_str(&raw(v)); } }
+    mtext::caret_decode(&s).into_owned()
+}
+
+/// Tag and plain value of an ATTRIB, for `Scene::meta`. A multi-line
+/// attribute (R2018) keeps its text in an embedded MTEXT after group 101.
+pub fn attrib_value(body: &[Tag]) -> Option<(String, String)> {
+    let body = cut_xrecord(body);
+    let (main, embedded) = match body.iter().position(|t| t.0 == 101) { Some(p) => (&body[..p], Some(&body[p..])), None => (body, None) };
+    let tag = s(main.iter().find(|t| t.0 == 2)?.1);
+    if tag.is_empty() { return None; }
+    let multi = embedded.map(|e| meta::plain_mtext(&joined(e))).filter(|v| !v.is_empty());
+    Some((tag, multi.unwrap_or_else(|| meta::plain_text(&joined(main)))))
+}
+
+/// Keep the content of a TEXT or MTEXT for `Scene::meta`.
+pub fn record(r: &mut Reader, kind: &[u8], body: &[Tag], com: &Common) {
+    let body = cut_xrecord(body);
+    let (text, kind) = if kind == b"MTEXT" { (meta::plain_mtext(&joined(body)), TextKind::MText) } else {
+        (body.iter().find(|t| t.0 == 1).map(|t| meta::plain_text(&mtext::caret_decode(&raw(t.1)))).unwrap_or_default(), TextKind::Text)
+    };
+    let x = gf(body, 10).unwrap_or(0.0);
+    let pos = [if com.ez < 0.0 { -x } else { x }, gf(body, 20).unwrap_or(0.0)];
+    let rec = TextRec { owner: 0, kind, layer: com.props.layer, handle: com.props.handle, pos, text };
+    r.meta = Some((*com, MetaRec::Text(rec)));
 }

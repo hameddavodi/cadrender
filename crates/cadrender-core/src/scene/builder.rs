@@ -3,6 +3,7 @@
 //! bottom-up, draw order, viewport selection, tab order.
 
 use super::tables::*;
+use super::meta::{InsertRec, Meta, TextRec};
 use super::{Block, Layout, Scene, SceneStats};
 use crate::entity::{BlockInfo, Entity, Kind, PrepareCx};
 use crate::geom::BBox;
@@ -28,6 +29,7 @@ pub struct SceneBuilder {
     sort_tables: Vec<(BlockId, Vec<(Handle, Handle)>)>,
     pub fonts: Fonts,
     pub stats: SceneStats,
+    meta: Meta,
 }
 
 fn key(name: &str) -> String { name.trim().to_uppercase() }
@@ -41,7 +43,7 @@ impl SceneBuilder {
             text_styles: vec![], style_idx: HashMap::new(),
             dim_styles: vec![], mleader_styles: vec![],
             blocks: vec![], block_idx: HashMap::new(), model: 0, paper: 0,
-            layouts: vec![], sort_tables: vec![], fonts, stats: SceneStats::default(),
+            layouts: vec![], sort_tables: vec![], fonts, stats: SceneStats::default(), meta: Meta::default(),
         };
         b.layer("0");
         b.model = b.block("*Model_Space");
@@ -131,6 +133,12 @@ impl SceneBuilder {
         if !pairs.is_empty() { self.sort_tables.push((block, pairs)); }
     }
 
+    // ---- metadata (not drawn; see `meta.rs`) ------------------------------
+    /// Keep an INSERT's attributes. INSERTs without attributes are not kept.
+    pub fn record_insert(&mut self, rec: InsertRec) { if !rec.attribs.is_empty() { self.meta.inserts.push(rec); } }
+    /// Keep a text's content. Empty texts are not kept.
+    pub fn record_text(&mut self, rec: TextRec) { if !rec.text.is_empty() { self.meta.texts.push(rec); } }
+
     pub fn count(&mut self, type_name: &str) { *self.stats.counts.entry(type_name.to_string()).or_default() += 1; }
     pub fn skip(&mut self, type_name: &str) { *self.stats.skipped.entry(type_name.to_string()).or_default() += 1; }
     pub fn warn(&mut self, msg: impl Into<String>) {
@@ -166,12 +174,30 @@ impl SceneBuilder {
         }
         self.layouts.sort_by_key(|l| l.order);
         for l in &mut self.layouts { l.viewports = select_viewports(&self.blocks[l.block as usize]); }
+        let rank = owner_rank(&self.blocks, self.model, &self.layouts);
+        self.meta.inserts.sort_by_key(|r| rank.get(r.owner as usize).copied().unwrap_or(u32::MAX));
+        self.meta.texts.sort_by_key(|r| rank.get(r.owner as usize).copied().unwrap_or(u32::MAX));
         Scene {
             header: self.header, layers: self.layers, linetypes: self.linetypes, text_styles: self.text_styles,
             dim_styles: self.dim_styles, mleader_styles: self.mleader_styles, blocks: self.blocks, model: self.model,
-            layouts: self.layouts, fonts: self.fonts, prepare_order, stats: self.stats,
+            layouts: self.layouts, fonts: self.fonts, prepare_order, stats: self.stats, meta: self.meta,
         }
     }
+}
+
+/// Sort key of each block for the metadata records: model space first, then
+/// the sheets in tab order, then the other blocks by name. Readers add records
+/// in different orders (DXF: file order, DWG: by block); this makes them equal.
+fn owner_rank(blocks: &[Block], model: BlockId, layouts: &[Layout]) -> Vec<u32> {
+    let mut rank = vec![u32::MAX; blocks.len()];
+    let mut next = 0u32;
+    let mut set = |rank: &mut Vec<u32>, b: BlockId| if let Some(r) = rank.get_mut(b as usize) { if *r == u32::MAX { *r = next; next += 1; } };
+    set(&mut rank, model);
+    for l in layouts { set(&mut rank, l.block); }
+    let mut rest: Vec<usize> = (0..blocks.len()).filter(|&i| rank[i] == u32::MAX).collect();
+    rest.sort_by(|&a, &b| blocks[a].meta_name().cmp(&blocks[b].meta_name()));
+    for i in rest { set(&mut rank, i as BlockId); }
+    rank
 }
 
 /// Bounding boxes, expanded counts and depth for every block, bottom-up with
@@ -354,6 +380,46 @@ mod tests {
         assert_eq!(handles, vec![0x11, 0x12, 0x10]);
         // file order: entity 0 of the file (0x10) is now at position 2
         assert_eq!(blk.file_order.as_deref(), Some(&[2u32, 0, 1][..]));
+    }
+
+    #[test]
+    fn metadata_order_and_owner_names() {
+        use crate::scene::meta::{InsertRec, TextKind, TextRec};
+        let mut b = SceneBuilder::new(Fonts::new());
+        let tb = b.block("TB");
+        let (p2, p1) = (b.block("*Paper_Space0"), b.paper());
+        let det = b.block("DETAIL");
+        b.add_layout("A02", 2, p2, 0, crate::scene::PaperSetup::default());
+        b.add_layout("A01", 1, p1, 0, crate::scene::PaperSetup::default());
+        let ins = |owner, h| InsertRec { owner, block: tb, layer: 0, handle: h, pos: [0.0; 2], attribs: vec![("T".into(), "v".into())] };
+        // added in file order: a block, sheet 2, model, sheet 1
+        for (owner, h) in [(det, 1), (p2, 2), (b.model(), 3), (p1, 4), (p2, 5)] { b.record_insert(ins(owner, h)); }
+        b.record_insert(InsertRec { attribs: vec![], ..ins(p1, 6) }); // no attributes: not kept
+        b.record_text(TextRec { owner: p1, kind: TextKind::Text, layer: 0, handle: 7, pos: [0.0; 2], text: String::new() }); // empty: not kept
+        let s = b.build();
+        let order: Vec<(u64, String)> = s.meta.inserts.iter().map(|r| (r.handle, s.owner_name(r.owner).into_owned())).collect();
+        let want: Vec<(u64, String)> = [(3, "Model"), (4, "A01"), (2, "A02"), (5, "A02"), (1, "DETAIL")].iter().map(|(h, n)| (*h, n.to_string())).collect();
+        assert_eq!(order, want);
+        assert!(s.meta.texts.is_empty());
+    }
+
+    #[test]
+    fn anonymous_block_names_use_the_handle() {
+        let mut b = SceneBuilder::new(Fonts::new());
+        let u = b.block("*U60");
+        b.block_mut(u).handle = 0x2F1A;
+        let d = b.block("*D#46CB24"); // the DWG reader's name for a second "*D"
+        b.block_mut(d).handle = 0x46CB24;
+        let undefined = b.block("*U7"); // used, never defined: no handle
+        let named = b.block("DOOR");
+        b.block_mut(named).handle = 0x30;
+        let s = b.build();
+        assert_eq!(s.block_name(u), "*U#2F1A");
+        assert_eq!(s.block_name(d), "*D#46CB24");
+        assert_eq!(s.block_name(undefined), "*U7");
+        assert_eq!(s.block_name(named), "DOOR");
+        assert_eq!(s.owner_name(s.model), "Model");
+        assert_eq!(s.block_name(s.model), "*Model_Space");
     }
 
     fn vp(status: i32) -> Entity {

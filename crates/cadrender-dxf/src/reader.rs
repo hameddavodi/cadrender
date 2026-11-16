@@ -3,6 +3,7 @@
 use crate::objects::Objects;
 use crate::tags::{f, hex, i, s, trim, Tag, Tags};
 use crate::DxfError;
+use cadrender_core::scene::meta::{InsertRec, TextRec};
 use cadrender_core::scene::tables::{BlockId, Handle, LayerId};
 use cadrender_core::text::Fonts;
 use cadrender_core::{Scene, SceneBuilder};
@@ -24,7 +25,12 @@ pub struct Reader {
     defined: Vec<bool>,
     /// Work that needs the whole file (see `at_end`).
     deferred: Vec<Deferred>,
+    /// Metadata of the entity just read; the main loop adds its owner block.
+    pub meta: Option<(crate::entities::Common, MetaRec)>,
 }
+
+/// A metadata record whose owner is not known yet (`owner` is set by the main loop).
+pub enum MetaRec { Insert(InsertRec), Text(TextRec) }
 
 /// A step run after the last section, before the scene is built.
 pub type Deferred = Box<dyn FnOnce(&mut Reader)>;
@@ -34,7 +40,7 @@ enum Section { None, Header, Tables, Blocks, Entities, Objects, Other }
 
 impl Reader {
     pub fn new(fonts: Fonts) -> Reader {
-        Reader { b: SceneBuilder::new(fonts), rec_by_handle: HashMap::new(), layer_xdict: vec![], objs: Objects::default(), block_def: false, attdefs: HashMap::new(), defined: vec![], deferred: vec![] }
+        Reader { b: SceneBuilder::new(fonts), rec_by_handle: HashMap::new(), layer_xdict: vec![], objs: Objects::default(), block_def: false, attdefs: HashMap::new(), defined: vec![], deferred: vec![], meta: None }
     }
 
     /// The BLOCK record of this block was read already.
@@ -101,14 +107,22 @@ impl Reader {
                                 let n = self.b.block_name(b).to_ascii_lowercase();
                                 !(n.starts_with("*model_space") || n.starts_with("*paper_space"))
                             });
+                            let target = |r: &mut Reader, com: &crate::entities::Common| if in_entities {
+                                match r.block_of_record(com.owner) {
+                                    Some(b) => b,
+                                    None => if com.paper { r.b.paper() } else { model },
+                                }
+                            } else { cur_block.unwrap_or(model) };
                             if let Some((ent, com)) = crate::entities::read(&mut self, kind, &body, &mut t) {
-                                let target = if in_entities {
-                                    match self.block_of_record(com.owner) {
-                                        Some(b) => b,
-                                        None => if com.paper { self.b.paper() } else { model },
-                                    }
-                                } else { cur_block.unwrap_or(model) };
-                                self.b.push(target, ent);
+                                let block = target(&mut self, &com);
+                                self.b.push(block, ent);
+                            }
+                            if let Some((com, rec)) = self.meta.take() {
+                                let owner = target(&mut self, &com);
+                                match rec {
+                                    MetaRec::Insert(r) => self.b.record_insert(InsertRec { owner, ..r }),
+                                    MetaRec::Text(r) => self.b.record_text(TextRec { owner, ..r }),
+                                }
                             }
                         }
                     }

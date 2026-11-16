@@ -85,6 +85,7 @@ impl Ctx<'_> {
             let n = self.b.block_name(block).to_ascii_lowercase();
             self.block_def = !(n.starts_with("*model_space") || n.starts_with("*paper_space"));
             for &h in hs {
+                self.record_meta(block, h);
                 if let Some(e) = self.entity(h) { self.b.push(block, e); }
             }
         }

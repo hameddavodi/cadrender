@@ -2,6 +2,7 @@
 //!
 //! ```text
 //! cadrender sheets <file.dxf|dwg>
+//! cadrender attribs <file.dxf|dwg> [--sheet <NAME>] [--json]
 //! cadrender render <file.dxf|dwg> --sheet <NAME> --width 2000 -o out.png
 //! cadrender render <file.dxf|dwg> --all --width 2000 --out-dir DIR [--threads N] [--svg]
 //! ```
@@ -18,6 +19,7 @@ use std::time::Instant;
 
 const USAGE: &str = "usage:
   cadrender sheets <file.dxf|dwg>
+  cadrender attribs <file.dxf|dwg> [--sheet <NAME>] [--json]
   cadrender render <file.dxf|dwg> --sheet <NAME> [--width 2000] -o out.png|out.svg
   cadrender render <file.dxf|dwg> --all [--width 2000] --out-dir DIR [--threads N] [--svg]
 
@@ -58,13 +60,14 @@ struct Args {
     svg_cfg: SvgConfig,
     font: FontChoice,
     opts: RenderOptions,
+    json: bool,
 }
 
 fn parse_args(argv: &[String]) -> Result<Args, String> {
     let mut it = argv.iter().skip(1);
     let cmd = it.next().ok_or("missing command")?.clone();
     if cmd == "-h" || cmd == "--help" || cmd == "help" { return Err(String::new()); }
-    let mut a = Args { cmd, input: None, sheet: None, sheets: None, all: false, out: None, out_dir: None, threads: 0, svg: false, svg_only: false, svg_cfg: SvgConfig::default(), font: FontChoice::Auto, opts: RenderOptions::preset("preview").expect("preview preset") };
+    let mut a = Args { cmd, input: None, sheet: None, sheets: None, all: false, out: None, out_dir: None, threads: 0, svg: false, svg_only: false, svg_cfg: SvgConfig::default(), font: FontChoice::Auto, opts: RenderOptions::preset("preview").expect("preview preset"), json: false };
     // first pass for the preset, so later flags change it
     let rest: Vec<String> = it.cloned().collect();
     if let Some(i) = rest.iter().position(|x| x == "--preset") {
@@ -79,6 +82,7 @@ fn parse_args(argv: &[String]) -> Result<Args, String> {
             "--sheet" => a.sheet = Some(val()?),
             "--sheets" => a.sheets = Some(val()?.split(',').map(str::to_string).collect()),
             "--all" => a.all = true,
+            "--json" => a.json = true,
             "-o" | "--out" => a.out = Some(val()?.into()),
             "--out-dir" => a.out_dir = Some(val()?.into()),
             "--width" => a.opts.width = val()?.parse().map_err(|_| "--width must be a number")?,
@@ -116,6 +120,7 @@ fn main() -> ExitCode {
     let Some(input) = a.input.clone() else { eprintln!("error: missing input file\n{USAGE}"); return ExitCode::from(2) };
     match a.cmd.as_str() {
         "sheets" => cmd_sheets(&input, &a),
+        "attribs" => cmd_attribs(&input, &a),
         "render" => cmd_render(&input, a),
         c => { eprintln!("error: unknown command {c:?}\n{USAGE}"); ExitCode::from(2) }
     }
@@ -134,6 +139,38 @@ fn cmd_sheets(input: &PathBuf, a: &Args) -> ExitCode {
     let doc = match Document::open(input, cadrender::Fonts::new()) { Ok(d) => d, Err(e) => { eprintln!("error: {}: {e}", input.display()); return ExitCode::from(1); } };
     let _ = a;
     for s in doc.sheets() { println!("{s}"); }
+    ExitCode::SUCCESS
+}
+
+/// Block attributes of every sheet (or of `--sheet`): text, or JSON with `--json`.
+fn cmd_attribs(input: &PathBuf, a: &Args) -> ExitCode {
+    // values need no fonts; skip loading them
+    let doc = match Document::open(input, cadrender::Fonts::new()) { Ok(d) => d, Err(e) => { eprintln!("error: {}: {e}", input.display()); return ExitCode::from(1); } };
+    let recs = doc.attributes(a.sheet.as_deref());
+    if !a.json {
+        for r in &recs {
+            println!("{}\t{}\t{:X}", r.sheet, r.block, r.handle);
+            for (tag, v) in r.values { println!("  {tag} = {}", v.replace('\n', "\\n")); }
+        }
+        return ExitCode::SUCCESS;
+    }
+    let rows = recs.iter().map(|r| {
+        let mut j = Json::obj();
+        j.str("sheet", &r.sheet);
+        j.str("block", &r.block);
+        j.str("layer", r.layer);
+        j.str("handle", &format!("{:X}", r.handle));
+        j.num("x", r.pos[0]);
+        j.num("y", r.pos[1]);
+        let mut v = Json::obj();
+        for (tag, val) in r.values { v.str(tag, val); }
+        j.raw("values", v);
+        j
+    }).collect();
+    let mut out = Json::obj();
+    out.str("file", &input.to_string_lossy());
+    out.arr("attributes", rows);
+    println!("{}", out.finish());
     ExitCode::SUCCESS
 }
 
