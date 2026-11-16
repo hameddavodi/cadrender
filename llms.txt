@@ -19,6 +19,9 @@ summary = doc.render_all(
     clean={"layers": ["TITLE_BLOCK"], "block_keywords": ["logo"]},  # leave things out
 )
 summary["done"], summary["failed"]         # lists / dict of errors per sheet
+doc.sheet_info()                           # [{"sheet", "order", "paper": {...}}] in tab order
+doc.attributes("A01")                      # [{"sheet", "block", "layer", "handle", "position", "values": {TAG: value}}]
+doc.texts("A01", layers=["NOTES"])         # [{"sheet", "layer", "type", "handle", "text", "position"}] plain text
 ```
 
 Option keywords for render/render_to/render_all: preset ("preview" default: grey on white, paper lineweights; "none": true colours), width, dpi, color ("mono" | "true"), background, lineweight, frame ("extents" | "paper"), margin, max_height, full_detail, clean, draw_order, text_masks, wipeout_frames. Output file names in render_all: `<file stem>__<sheet>.png`.
@@ -27,6 +30,7 @@ Option keywords for render/render_to/render_all: preset ("preview" default: grey
 
 ```sh
 cadrender sheets drawing.dwg
+cadrender attribs drawing.dwg [--sheet A01] [--json]
 cadrender render drawing.dwg --sheet A01 --width 2000 -o a01.png
 cadrender render drawing.dxf --all --out-dir out/ [--sheets A01,A02] [--threads N] [--svg]
 ```

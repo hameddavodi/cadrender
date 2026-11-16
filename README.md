@@ -95,6 +95,7 @@ it with `cargo install cadrender-cli`.
 
 ```sh
 cadrender sheets drawing.dwg                      # list the sheets
+cadrender attribs drawing.dwg --sheet A01 --json  # block attributes (title block values)
 cadrender render drawing.dwg --sheet A01 -o a01.png
 cadrender render drawing.dxf --sheet A01 -o a01.svg
 cadrender render drawing.dxf --all --out-dir out/ --svg   # every sheet, PNG + SVG
@@ -141,6 +142,29 @@ doc.render_all(
 ```
 
 Command line: `cadrender render drawing.dwg --all --sheets A01,A07 --out-dir out/`.
+
+## Reading metadata
+
+The same opened drawing also gives its data: block attributes (for example
+the values of a title block), texts and the sheet list. From DXF or straight
+from DWG, with the same results.
+
+```python
+doc = cadrender.open("drawing.dwg")
+doc.sheet_info()     # [{"sheet": "A01", "order": 1, "paper": {"size_mm": (1189.0, 841.0), ...}}, ...]
+
+for a in doc.attributes("A01"):              # sheet=None: all; "Model": model space
+    print(a["block"], a["values"])           # TITLE_BLOCK {'PROJECT': 'P-001', 'DRAWING': '...', ...}
+
+doc.texts("A01", layers=["NOTES"])          # TEXT, MTEXT and MULTILEADER as plain text
+# [{"sheet": "A01", "layer": "NOTES", "type": "MTEXT", "text": "First line\nSecond line", ...}]
+```
+
+Values are plain text: `\U+00E8` and `%%d` are decoded, MTEXT formatting is
+removed, multi-line attributes are joined with `\n`. Each record also has the
+layer, the handle and the position. Hidden attributes are included. An
+INSERT inside another block is reported under that block's name; anonymous
+blocks (dynamic blocks, dimensions) are named by their handle, `*U#2F1A`.
 
 ## Rust
 
