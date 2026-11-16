@@ -1,11 +1,11 @@
 name: Download stats
 
-# Once a week, append download numbers (PyPI, crates.io, release binaries)
+# Once a day, append download numbers (PyPI, crates.io, release binaries)
 # to stats/downloads.csv and commit them.
 
 on:
   schedule:
-    - cron: "17 6 * * 1"  # Mondays 06:17 UTC
+    - cron: "17 6 * * *"  # every day 06:17 UTC
   workflow_dispatch:
 
 permissions:

@@ -10,7 +10,8 @@ Environment:
   GITHUB_TOKEN       for release asset counts (read-only is enough)
 
 Note: pypistats.org keeps only the last 180 days, so the PyPI "total" is a
-180-day number; the weekly rows (recent, 7d) add up to the real history.
+180-day number. The job runs daily, so the "1d" rows (downloads of the day
+before) add up to the real history; the 7d and 30d rows overlap.
 Standard library only.
 """
 
@@ -42,7 +43,8 @@ def pypi() -> list[list[object]]:
     recent = get(f"https://pypistats.org/api/packages/{PACKAGE}/recent")["data"]
     overall = get(f"https://pypistats.org/api/packages/{PACKAGE}/overall?mirrors=false")["data"]
     total = sum(d["downloads"] for d in overall if d["category"] == "without_mirrors")
-    return [["pypi", total, recent["last_week"], "7d"],
+    return [["pypi", total, recent["last_day"], "1d"],
+            ["pypi", total, recent["last_week"], "7d"],
             ["pypi", total, recent["last_month"], "30d"]]
 
 
