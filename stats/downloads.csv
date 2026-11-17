@@ -1,1 +1,6 @@
 date,source,total,recent,recent_window
+2026-11-17,pypi,435,208,1d
+2026-11-17,pypi,435,435,7d
+2026-11-17,pypi,435,435,30d
+2026-11-17,crates-io,33,33,90d
+2026-11-17,github-releases,10,,
