@@ -21,3 +21,8 @@ date,source,total,recent,recent_window
 2026-11-20,github-releases,11,,
 2026-11-21,crates-io,50,50,90d
 2026-11-21,github-releases,11,,
+2026-11-22,pypi,501,19,1d
+2026-11-22,pypi,501,293,7d
+2026-11-22,pypi,501,501,30d
+2026-11-22,crates-io,50,50,90d
+2026-11-22,github-releases,11,,
